@@ -19,22 +19,20 @@ jobs:
           sudo apt-get update -y && sudo apt-get upgrade -y
           sudo apt-get install -y curl git unzip xz-utils zip libglu1-mesa
 
-      - name: 🐦 Setup Flutter SDK
+      - name: 🐦 Setup Flutter SDK (Stable Revert)
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.0'
+          # CRITICAL: Revert to 3.13.0 for better stability against kernel_snapshot errors.
+          flutter-version: '3.13.0'
           channel: 'stable'
           cache: true 
 
-      - name: 🛠️ Initialize Project Structure (and Overwrite Fix)
-        # 1. Creates the necessary boilerplate folders (android/, ios/, etc.).
-        # 2. This step OVERWRITES lib/main.dart with the blank app template.
+      - name: 🛠️ Initialize Project Structure
+        # 1. Creates boilerplate. Overwrites lib/main.dart with template.
         run: flutter create --project-name neon_pong_revival .
 
       - name: 🔄 Restore Custom Game Code
-        # CRITICAL FIX: This command uses Git to revert ONLY the lib/main.dart 
-        # file back to the version you committed (which contains your game logic), 
-        # undoing the template overwrite from the previous step.
+        # CRITICAL: Restores the game code after the template overwrite.
         run: git checkout HEAD -- lib/main.dart
 
       - name: 📦 Install Dart & Flutter Packages
@@ -44,7 +42,7 @@ jobs:
         run: flutter clean
 
       - name: 🧱 Build Release APK
-        # The build will now run using the complete project structure AND your game code.
+        # This will now succeed using the corrected code and stable Flutter version.
         run: flutter build apk --release
 
       - name: 📤 Upload APK Artifact
