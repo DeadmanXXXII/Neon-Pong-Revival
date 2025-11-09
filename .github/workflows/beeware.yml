@@ -1,0 +1,73 @@
+name: Build BeeWare App (Android, macOS, iOS)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  android:
+    name: 🧱 Build Android APK
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: 📦 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: ⚙️ Install BeeWare Toolchain
+        run: |
+          pip install --upgrade pip
+          pip install briefcase toga pygame-ce
+
+      - name: 🏗️ Build Android APK
+        run: |
+          briefcase create android
+          briefcase build android
+          briefcase package android
+
+      - name: 📤 Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DeadmanPong-Android
+          path: dist/*.apk
+
+  macos_ios:
+    name: 🍎 Build macOS & iOS Apps
+    runs-on: macos-latest
+
+    steps:
+      - name: 📦 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: ⚙️ Install BeeWare Toolchain
+        run: |
+          pip install --upgrade pip
+          pip install briefcase toga pygame-ce
+
+      - name: 🖥️ Build macOS App
+        run: |
+          briefcase create macOS
+          briefcase build macOS
+          briefcase package macOS
+
+      - name: 📱 Build iOS App
+        run: |
+          briefcase create iOS
+          briefcase build iOS
+          briefcase package iOS || true  # Skip if signing not configured
+
+      - name: 📤 Upload macOS/iOS Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: DeadmanPong-macOS-iOS
+          path: dist/*
