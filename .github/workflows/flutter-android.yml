@@ -19,25 +19,28 @@ jobs:
           sudo apt-get update -y && sudo apt-get upgrade -y
           sudo apt-get install -y curl git unzip xz-utils zip libglu1-mesa
 
-      - name: 🐦 Setup Flutter SDK
+      - name: 🐦 Setup Flutter SDK (Upgraded)
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.13.0'
+          # Using a modern, stable Flutter version to minimize toolchain conflicts
+          flutter-version: '3.22.0'
           channel: 'stable'
+          cache: true 
 
-      # Step 1: Initialize the project structure
       - name: 🛠️ Initialize Project Structure
-        # This generates all boilerplate files using the correct project name.
+        # Generates missing project boilerplate using the valid package name.
         run: flutter create --project-name neon_pong_revival .
 
-      # Step 2: Download dependencies AFTER structure is guaranteed
       - name: 📦 Install Dart & Flutter Packages
-        # This downloads 'flame', 'audioplayers', etc., into the new structure.
         run: flutter pub get
 
-      # Step 3: Run the build
-      - name: 🧱 Build Release APK
-        run: flutter build apk --release
+      - name: 🧹 Clean Build Cache
+        # Ensures a clean start before compilation begins.
+        run: flutter clean
+
+      - name: 🧱 Build Release APK (with Stacktrace)
+        # CRITICAL UPDATE: Adding --stacktrace to surface the low-level kernel error.
+        run: flutter build apk --release --stacktrace
 
       - name: 📤 Upload APK Artifact
         uses: actions/upload-artifact@v4
