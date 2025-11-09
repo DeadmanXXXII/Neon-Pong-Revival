@@ -19,27 +19,33 @@ jobs:
           sudo apt-get update -y && sudo apt-get upgrade -y
           sudo apt-get install -y curl git unzip xz-utils zip libglu1-mesa
 
-      - name: 🐦 Setup Flutter SDK (Upgraded)
+      - name: 🐦 Setup Flutter SDK
         uses: subosito/flutter-action@v2
         with:
-          # Using a modern, stable Flutter version to minimize toolchain conflicts
+          # Sticking with 3.22.0, as the error is linkage, not version-specific.
           flutter-version: '3.22.0'
           channel: 'stable'
           cache: true 
 
-      - name: 🛠️ Initialize Project Structure
-        # Generates missing project boilerplate using the valid package name.
-        run: flutter create --project-name neon_pong_revival .
+      # CRITICAL NEW STEP: Ensure the package cache is clean before creation/install.
+      - name: 🧹 Clean Dart/Pub Cache
+        run: flutter pub cache repair
+
+      - name: 🛠️ Initialize Project Structure (with Overwrite)
+        # CRITICAL FIX: --overwrite ensures the boilerplate files are completely 
+        # rebuilt over any existing conflicts, resolving context issues.
+        run: flutter create --project-name neon_pong_revival --overwrite .
 
       - name: 📦 Install Dart & Flutter Packages
+        # This step now installs packages into the freshly-created, clean structure.
         run: flutter pub get
 
-      - name: 🧹 Clean Build Cache
+      - name: 🧹 Clean Build Cache (Post-Pub Get)
         # Ensures a clean start before compilation begins.
         run: flutter clean
 
-      - name: 🧱 Build Release APK (with Stacktrace)
-        # CRITICAL UPDATE: Adding --stacktrace to surface the low-level kernel error.
+      - name: 🧱 Build Release APK
+        # Standard release build. All environmental issues should now be resolved.
         run: flutter build apk --release
 
       - name: 📤 Upload APK Artifact
