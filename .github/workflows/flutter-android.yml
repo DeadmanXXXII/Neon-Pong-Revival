@@ -1,0 +1,39 @@
+name: Build Flutter Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    name: 🧱 Build DeadmanXXXII's Classic Pong APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📦 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🧰 Install System Dependencies
+        run: |
+          # Install necessary libraries for Flutter/Android build on Linux runners
+          sudo apt-get update -y && sudo apt-get upgrade -y
+          sudo apt-get install -y curl git unzip xz-utils zip libglu1-mesa
+
+      - name: 🐦 Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.13.0'
+          channel: 'stable'
+
+      - name: 📦 Install Dart & Flutter Packages
+        run: flutter pub get
+
+      - name: 🧱 Build Release APK
+        run: flutter build apk --release
+
+      - name: 📤 Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DeadmanXXXII_ClassicPong_Android
+          path: build/app/outputs/flutter-apk/app-release.apk
