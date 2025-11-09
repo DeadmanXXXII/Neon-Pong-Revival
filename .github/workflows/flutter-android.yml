@@ -26,9 +26,10 @@ jobs:
           channel: 'stable'
 
       - name: 🛠️ Initialize Project Structure (The Fix)
-        # CRITICAL: This command generates the missing 'android/', 'ios/',
-        # and other boilerplate files needed for Flutter to recognize the project root.
-        run: flutter create .
+        # CRITICAL FIX: Explicitly set the project name to the valid snake_case name
+        # 'deadman_pong_flutter' to bypass the "is not a valid Dart package name" error
+        # caused by the repository name 'Neon-Pong-Revival'.
+        run: flutter create --project-name neon_pong_revival .
 
       - name: 📦 Install Dart & Flutter Packages
         run: flutter pub get
