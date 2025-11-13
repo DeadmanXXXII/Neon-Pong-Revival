@@ -1,0 +1,9 @@
+{
+  "appId": "com.deadmanxxxii.neonpong",
+  "appName": "Neon Pong Revival",
+  "webDir": "www", 
+  "bundledWebRuntime": false,
+  "server": {
+    "cleartext": true
+  }
+}
