@@ -1,4 +1,4 @@
-// lib/main.dart - FINAL CORRECTED CODE
+// lib/main.dart - Complete, corrected and mobile-ready
 import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
@@ -7,8 +7,12 @@ import 'package:flutter/material.dart' hide Image;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
-  runApp(GameWidget(game: NeonPongGame()));
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(GameWidget(game: NeonPongGame(), overlayBuilderMap: {
+    'MainMenu': (ctx, game) => MainMenu(game: game as NeonPongGame),
+    'PauseMenu': (ctx, game) => PauseMenu(game: game as NeonPongGame),
+  }, initialActiveOverlays: ['MainMenu']));
 }
 
 enum Difficulty { easy, normal, hard, insane }
@@ -23,28 +27,15 @@ class NeonPongGame extends FlameGame with HasTappables, HasDraggables, TapDetect
   Difficulty difficulty = Difficulty.normal;
   int highScore = 0;
 
-  // neon styles
-  final Paint neonPaint = Paint()
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = 4
-    ..color = const Color(0xFFFF2B2B); // neon red
-
-  final Paint neonFill = Paint()
-    ..style = PaintingStyle.fill
-    ..color = const Color(0xFF220000);
-
   @override
   Future<void> onLoad() async {
     await super.onLoad();
 
-    // dimensions and paddles
     final paddleWidth = size.x * 0.02;
     final paddleHeight = size.y * 0.18;
 
-    player = Paddle(Vector2(paddleWidth + 10, (size.y - paddleHeight) / 2),
-        Vector2(paddleWidth, paddleHeight));
-    computer = Paddle(Vector2(size.x - paddleWidth - 10 - paddleWidth, (size.y - paddleHeight) / 2),
-        Vector2(paddleWidth, paddleHeight));
+    player = Paddle(Vector2(paddleWidth + 10, (size.y - paddleHeight) / 2), Vector2(paddleWidth, paddleHeight));
+    computer = Paddle(Vector2(size.x - paddleWidth - 10 - paddleWidth, (size.y - paddleHeight) / 2), Vector2(paddleWidth, paddleHeight));
 
     add(player);
     add(computer);
@@ -54,7 +45,7 @@ class NeonPongGame extends FlameGame with HasTappables, HasDraggables, TapDetect
 
     scoreText = TextComponent(
       text: 'Score: 0',
-      position: Vector2(size.x / 2 - 40, 12),
+      position: Vector2(size.x / 2, 12),
       anchor: Anchor.topCenter,
       textRenderer: TextPaint(
         style: const TextStyle(color: Colors.redAccent, fontSize: 20, fontFamily: 'Roboto'),
@@ -65,7 +56,7 @@ class NeonPongGame extends FlameGame with HasTappables, HasDraggables, TapDetect
     highScore = await _loadHighScore();
     highScoreText = TextComponent(
       text: 'High: $highScore',
-      position: Vector2(size.x - 80, 12),
+      position: Vector2(size.x - 12, 12),
       anchor: Anchor.topRight,
       textRenderer: TextPaint(
         style: const TextStyle(color: Colors.redAccent, fontSize: 16),
@@ -77,40 +68,37 @@ class NeonPongGame extends FlameGame with HasTappables, HasDraggables, TapDetect
     musicPlayer = AudioPlayer();
     sfxPlayer = AudioPlayer();
 
-    // loop music file from assets
     try {
       await musicPlayer.setSource(AssetSource('8-bit-loop-music-290770.mp3'));
       musicPlayer.setReleaseMode(ReleaseMode.loop);
-      if (soundEnabled) musicPlayer.resume();
+      if (soundEnabled) await musicPlayer.resume();
     } catch (e) {
-      // fallback silently
+      // ignore audio init failure on some CI envs
     }
 
-    // serve ball
-    ball.serve();
+    ball.reset(size);
   }
 
   double get aiSpeed {
     switch (difficulty) {
       case Difficulty.easy:
-        return 2;
+        return 180; // px/s
       case Difficulty.normal:
-        return 3;
+        return 260;
       case Difficulty.hard:
-        return 5;
+        return 380;
       case Difficulty.insane:
-        return 8;
+        return 560;
     }
   }
 
   @override
   void update(double dt) {
     super.update(dt);
+
+    // check scoring
     if (ball.outLeft(size.x) || ball.outRight(size.x)) {
-      // reset serve after awarding point
-      if (ball.outLeft(size.x)) {
-        // computer scored
-      } else {
+      if (ball.outRight(size.x)) {
         player.score++;
         scoreText.text = 'Score: ${player.score}';
         if (player.score > highScore) {
@@ -120,17 +108,20 @@ class NeonPongGame extends FlameGame with HasTappables, HasDraggables, TapDetect
         }
       }
       ball.reset(size);
-      ball.serve();
+      // brief pause then serve
+      Future.delayed(Duration(milliseconds: 300), () => ball.serve());
     }
 
-    // AI movement: follow ball
-    if (computer.center.y < ball.center.y - 6) {
-      computer.position.add(Vector2(0, aiSpeed));
-    } else if (computer.center.y > ball.center.y + 6) {
-      computer.position.add(Vector2(0, -aiSpeed));
+    // AI: simple proportional tracking
+    final targetY = ball.center.y - computer.height / 2;
+    final diff = targetY - computer.position.y;
+    final move = aiSpeed * dt;
+    if (diff.abs() > move) {
+      computer.position.y += diff.sign * move;
+    } else {
+      computer.position.y = targetY;
     }
 
-    // keep paddles in bounds
     player.clampToScreen(size.y);
     computer.clampToScreen(size.y);
   }
@@ -148,7 +139,7 @@ class NeonPongGame extends FlameGame with HasTappables, HasDraggables, TapDetect
 
   @override
   void onDragUpdate(int pointerId, DragUpdateInfo info) {
-    if (info.eventPosition.global.x < size.x * 0.4) {
+    if (info.eventPosition.global.x < size.x * 0.5) {
       player.center = Vector2(player.center.x, info.eventPosition.global.y);
     }
     super.onDragUpdate(pointerId, info);
@@ -174,7 +165,6 @@ class NeonPongGame extends FlameGame with HasTappables, HasDraggables, TapDetect
     prefs.setInt('high_score', v);
   }
 
-  // settings controls (could be called from an overlay)
   void toggleSound() {
     soundEnabled = !soundEnabled;
     if (soundEnabled) musicPlayer.resume();
@@ -214,7 +204,7 @@ class Paddle extends PositionComponent {
 
 class Ball extends PositionComponent with HasGameRef<NeonPongGame> {
   Vector2 velocity = Vector2.zero();
-  bool isStopped = false;
+  bool isStopped = true;
 
   Ball(Vector2 position, Vector2 size) : super(position: position, size: size, anchor: Anchor.topLeft);
 
@@ -222,9 +212,10 @@ class Ball extends PositionComponent with HasGameRef<NeonPongGame> {
 
   void serve() {
     final rand = Random();
-    final dx = rand.nextBool() ? 200 : -200;
-    final dy = (rand.nextDouble() * 200) - 100;
-    velocity = Vector2(dx, dy) / 60.0;
+    final baseSpeed = 700.0; // px/s - tuneable
+    final dx = rand.nextBool() ? baseSpeed : -baseSpeed;
+    final dy = (rand.nextDouble() * 400) - 200;
+    velocity = Vector2(dx, dy);
     isStopped = false;
   }
 
@@ -234,39 +225,40 @@ class Ball extends PositionComponent with HasGameRef<NeonPongGame> {
     isStopped = true;
   }
 
-  bool outLeft(double w) => position.x <= -width;
-  bool outRight(double w) => position.x >= w;
+  bool outLeft(double w) => position.x + width < 0;
+  bool outRight(double w) => position.x > w;
 
   @override
   void update(double dt) {
     super.update(dt);
     if (isStopped) return;
 
-    position += velocity;
+    position += velocity * dt;
 
-    // bounce top/bottom
-    if (position.y <= 0 || position.y + height >= gameRef.size.y) {
+    if (position.y <= 0) {
+      position.y = 0;
+      velocity.y = -velocity.y;
+    } else if (position.y + height >= gameRef.size.y) {
+      position.y = gameRef.size.y - height;
       velocity.y = -velocity.y;
     }
 
-    // collide with paddles
     final paddleRect = Rect.fromLTWH(gameRef.player.position.x, gameRef.player.position.y, gameRef.player.width, gameRef.player.height);
     final compRect = Rect.fromLTWH(gameRef.computer.position.x, gameRef.computer.position.y, gameRef.computer.width, gameRef.computer.height);
     final ballRect = Rect.fromLTWH(position.x, position.y, width, height);
 
     if (ballRect.overlaps(paddleRect) && velocity.x < 0) {
       velocity.x = -velocity.x * 1.05;
-      velocity.y += (Random().nextDouble() * 4 - 2);
+      velocity.y += (Random().nextDouble() * 300 - 150);
       gameRef.playHit();
     } else if (ballRect.overlaps(compRect) && velocity.x > 0) {
       velocity.x = -velocity.x * 1.05;
-      velocity.y += (Random().nextDouble() * 4 - 2);
+      velocity.y += (Random().nextDouble() * 300 - 150);
       gameRef.playHit();
     }
 
-    // clamp speed
-    final maxSpeed = 15.0;
-    if (velocity.distance > maxSpeed) velocity = velocity.normalized() * maxSpeed;
+    final maxSpeed = 1500.0;
+    if (velocity.length > maxSpeed) velocity = velocity.normalized() * maxSpeed;
   }
 
   @override
@@ -280,5 +272,71 @@ class Ball extends PositionComponent with HasGameRef<NeonPongGame> {
       ..strokeWidth = 6
       ..color = const Color(0xFFFF3B3B).withOpacity(.95);
     canvas.drawOval(rect.inflate(4), glow);
+  }
+}
+
+// Simple Flutter overlays for menus
+class MainMenu extends StatelessWidget {
+  final NeonPongGame game;
+  const MainMenu({required this.game, Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.black.withOpacity(0.6),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Neon Pong Revival', style: TextStyle(color: Colors.redAccent, fontSize: 28)),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: () {
+              game.overlays.remove('MainMenu');
+              game.ball.reset(game.size);
+              game.ball.serve();
+            }, child: const Text('Tap to Play')),
+            const SizedBox(height: 8),
+            ElevatedButton(onPressed: () {
+              game.toggleSound();
+            }, child: Text(game.soundEnabled ? 'Sound: On' : 'Sound: Off')),
+            const SizedBox(height: 8),
+            ElevatedButton(onPressed: () {
+              game.overlays.add('PauseMenu');
+            }, child: const Text('Settings')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class PauseMenu extends StatelessWidget {
+  final NeonPongGame game;
+  const PauseMenu({required this.game, Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.black.withOpacity(0.6),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Settings', style: TextStyle(color: Colors.redAccent, fontSize: 22)),
+            const SizedBox(height: 8),
+            DropdownButton<Difficulty>(
+              value: game.difficulty,
+              dropdownColor: Colors.black,
+              items: Difficulty.values.map((d) => DropdownMenuItem(value: d, child: Text(d.toString().split('.').last))).toList(),
+              onChanged: (v) {
+                if (v != null) game.setDifficulty(v);
+              },
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(onPressed: () { game.overlays.remove('PauseMenu'); }, child: const Text('Close')),
+          ],
+        ),
+      ),
+    );
   }
 }
