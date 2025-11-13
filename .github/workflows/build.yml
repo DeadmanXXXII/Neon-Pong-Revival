@@ -43,7 +43,7 @@ jobs:
           # Copy assets directory (includes audio)
           cp -r assets www/
           # CRITICAL ICON FIX: Convert icon.jpg to required icon.png format
-          convert assets/icon.jpg www/icon-512x512.png
+          convert icon.jpg www/icon-512x512.png
 
           
       # 4. Initialize and Prepare Capacitor Project Structure
