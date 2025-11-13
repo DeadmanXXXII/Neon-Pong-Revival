@@ -1,0 +1,65 @@
+name: Build Capacitor Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: 📦 Build Android APK via Capacitor
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📦 Checkout Repository
+        uses: actions/checkout@v4
+        
+      # CRITICAL NEW STEP: Install imagemagick for conversion
+      - name: 🖼️ Install Image Tools (Imagemagick)
+        run: sudo apt-get update && sudo apt-get install -y imagemagick
+
+      # 1. Setup Node.js Environment
+      - name: 🛠️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 2. Install Dependencies
+      - name: ⬇️ Install Capacitor/Android
+        run: npm install
+
+      # 3. Consolidate Web Assets into /www
+      - name: 📂 Prepare Assets for Packaging
+        run: |
+          mkdir www
+          # Copy core HTML/JS files
+          cp index.html www/
+          cp style.css www/
+          cp game.js www/
+          # Copy assets directory (includes audio)
+          cp -r assets www/
+          # CRITICAL ICON FIX: Convert and copy icon for mobile assets
+          convert icon.jpg www/icon-512x512.png
+          
+      # 4. Initialize and Prepare Capacitor
+      - name: 🔄 Sync Capacitor Project
+        # NOTE: The custom icon needs to be applied after the sync, using a tool 
+        # like 'npx capacitor-assets generate --icon www/icon-512x512.png'
+        # But for basic build to succeed, we ensure the file is in 'www'.
+        run: |
+          npx cap add android
+          npx cap copy
+
+      # 5. Compile Android APK
+      - name: 🧱 Build Release APK
+        uses: aliaksei-leuchanka/capacitor-android-build@v2
+        with:
+          app-name: 'Neon Pong Revival'
+          build-type: release
+          
+      # 6. Upload Final APK
+      - name: 📤 Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeonPong_Capacitor_Android_APK
+          path: android/app/build/outputs/apk/release/app-release.apk
