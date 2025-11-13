@@ -41,9 +41,9 @@ jobs:
           cp style.css www/
           cp game.js www/
           # Copy assets directory (includes audio)
-          cp -r assets www/
+          cp -r icon.jpg www/icon.png
           # CRITICAL ICON FIX: Convert icon.jpg to required icon.png format
-          convert icon.jpg www/icon-512x512.png
+          convert icon.png www/icon-512x512.png
 
           
       # 4. Initialize and Prepare Capacitor Project Structure
