@@ -16,6 +16,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^2.0.0
+  flutter_launcher_icons: ^0.10.0
 
 flutter:
   uses-material-design: true
@@ -25,3 +26,8 @@ flutter:
     - assets/hit.wav
     - assets/over.wav
     - assets/icon.png
+
+flutter_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon.png"
