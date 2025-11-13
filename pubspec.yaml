@@ -9,7 +9,7 @@ dependencies:
   flutter:
     sdk: flutter
   flame: ^1.6.0
-  audioplayers: ^2.1.3
+  audioplayers: ^6.1.0
   shared_preferences: ^2.1.1
 
 dev_dependencies:
