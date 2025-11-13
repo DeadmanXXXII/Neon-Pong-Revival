@@ -46,8 +46,9 @@ jobs:
       # 4. Initialize and Prepare Capacitor Project Structure
       - name: 🔄 Sync Capacitor Project
         run: |
-          npx cap add android
-          npx cap copy
+          # Use npm run scripts defined in package.json to ensure correct path resolution
+          npm run cap:add:android
+          npm run cap:copy
 
       # 5. Compile Android APK (Manual Gradle Build)
       - name: 🧱 Build Release APK (Direct Gradle Command)
