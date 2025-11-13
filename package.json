@@ -4,9 +4,9 @@
   "description": "HTML5 Pong wrapped for mobile.",
   "scripts": {
     "start": "npx http-server ./www",
-    "cap:add:android": "node node_modules/@capacitor/cli/bin/capacitor add android",
-    "cap:copy": "node node_modules/@capacitor/cli/bin/capacitor copy",
-    "cap:sync": "node node_modules/@capacitor/cli/bin/capacitor sync"
+    "cap:add:android": "node node_modules/@capacitor/cli/bin/cli.js add android",
+    "cap:copy": "node node_modules/@capacitor/cli/bin/cli.js copy",
+    "cap:sync": "node node_modules/@capacitor/cli/bin/cli.js sync"
   },
   "dependencies": {
     "@capacitor/core": "^6.0.0",
